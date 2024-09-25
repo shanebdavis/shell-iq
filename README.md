@@ -9,6 +9,8 @@
 - Combine it with a "watcher" that re-runs the command when it detects changes and get updated ai-generated summaries every time
 - Works with any shell command (not limited to JAvaScript)
 
+![image](./example.png)
+
 ## Installation
 
 You can run it with `npx`:

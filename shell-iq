@@ -353,7 +353,7 @@ You are a coding assistant.Analyze the following output from running a command.
 Below is the command executed and its options:
 
   \`\`\`
-${JSON.stringify({ command, commandOptions, currentDirectory: process.cwd() }, null, 2)}
+${JSON.stringify({ command: `${command} ${commandOptions}`, currentDirectory: process.cwd() }, null, 2)}
 \`\`\`
 
 `
@@ -377,7 +377,9 @@ ${JSON.stringify({ command, commandOptions, currentDirectory: process.cwd() }, n
       console.error('Error communicating with OpenAI API:', error);
     }
     console.log(colorizeMarkdown(`
+
 # shell-iq suggestions _(${OPENAI_MODEL})_
+
 ${response}`));
 
   })();
