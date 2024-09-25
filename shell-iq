@@ -287,6 +287,10 @@ REQUIREMENTS:
   - Only note the other errors briefly.
   - If there is a stack trace, guess the most helpful line and include the file:row:column reference.
   - deprecation warnings are NOT errors.
+  - effectively help with the error
+    1. clearly state the error very shortly
+    2. clearly identify where it is in the source code, if possible, and provide a link to the relative to the current directory. Use the file:row:column format if row and column are available.
+    3. succinctly suggest the most likely solution
   - If there were errors, end your message with a short, creative, and encouraging quote about perseverance. The quote should focus on resilience and overcoming adversity. Vary the structure—sometimes using humor, wisdom, metaphors or quote from a motivational poster. The whackier and funnier, the better. If possible, connect it to the nature of the error. Don't always start with "remember". Avoid suggesting snacks or treats to feel better, it's not a healthy habit. Examples:
     - “If life throws you a curveball, duck… or swing like you’re hitting a piñata!”
     - “If you trip, turn it into a forward roll—instant acrobat!”
@@ -368,7 +372,7 @@ ${JSON.stringify({ command, commandOptions, currentDirectory: process.cwd() }, n
       console.error('Error communicating with OpenAI API:', error);
     }
     console.log(colorizeMarkdown(`
-# ChatGPT Suggestions _(${OPENAI_MODEL})_
+# shell-iq suggestions _(${OPENAI_MODEL})_
 ${response}`));
 
   })();
