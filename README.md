@@ -51,4 +51,4 @@ In this example, `shell-iq` will monitor the output of your test command and pro
 
 ## License
 
-MIT# shell-iq
+MIT License
