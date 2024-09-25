@@ -9,6 +9,8 @@
 - Combine it with a "watcher" that re-runs the command when it detects changes and get updated ai-generated summaries every time
 - Works with any shell command (not limited to JAvaScript)
 
+## Example
+
 ![image](./example.png)
 
 ## Installation
