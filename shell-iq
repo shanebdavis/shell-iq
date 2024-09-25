@@ -1,0 +1,375 @@
+#!/usr/bin/env node
+/*
+# Setup
+
+```sh
+npm install marked openai --save-dev
+```
+
+# Usage
+```sh
+./chatgpt-dev-helper.js -- npm test
+```
+*/
+
+const marked = require('marked');
+const { terminalColors, repeat, log } = require('art-standard-lib')
+const decodeHTML = (str) => str.replace(/&#(\d+);/g, (_, num) => String.fromCharCode(num)).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+const TEST_MARKDOWN = `
+
+-----
+
+## Nested
+
+- UL1 item 1
+  - UL2 item 1.1
+  - UL2 item 1.2
+
+- UL1 item 1.3
+
+1. OL1 item _1_
+2. OL1 item 2
+   1. OL2 item **2.1**
+   2. OL2 item *2.2*
+
+# H1
+## H2
+### H3
+#### H4
+##### H5
+###### H6
+
+**Bold Text**
+
+*Italic Text*
+
+***Bold and Italic Text***
+
+> This is a blockquote.
+
+- Bullet list item 1
+- Bullet list item 2
+- Bullet list item 3
+
+1. Numbered list item 1
+2. Numbered list item 2
+3. Numbered list item 3
+
+An example link: [This is a link](https://example.com) and some after
+An example link with no title: (https://example.com) and some after
+An example link the other way: [https://example.com] and some after
+
+![This is an image](https://via.placeholder.com/150)
+
+This text has \`Inline code\`!!!
+
+| Header 1 | Header 2 |
+| -------- | -------- |
+| Row 1    | Row 1    |
+| Row 2    | Row 2    |
+
+- [ ] Task list item 1
+- [x] Task list item 2
+
+---
+Horizontal rule
+
+`
+
+// REFERENT: https://github.com/markedjs/marked/blob/master/src/Renderer.ts
+const renderer = {
+  heading({ tokens, depth }) {
+    const rendered = this.parser.parseInline(tokens);
+    return terminalColors.green(repeat("#", depth) + " " + rendered) + "\n\n"
+  },
+  paragraph({ tokens }) {
+    const rendered = this.parser.parseInline(tokens);
+    return rendered + "\n\n"
+  },
+  // space() {
+  //   return "SSS\n"
+  // },
+  em({ tokens }) {
+    const rendered = this.parser.parseInline(tokens);
+    return terminalColors.yellow(rendered)
+  },
+  strong({ tokens }) {
+    const rendered = this.parser.parseInline(tokens);
+    return terminalColors.bold(rendered)
+  },
+  // text(rendered) {
+  //   return rendered
+  // },
+  code({ raw }) {
+    return "\n" + terminalColors.cyan(raw) + "\n\n"
+  },
+  codespan({ text }) {
+    return terminalColors.cyan(text)
+  },
+
+  hr() {
+    return repeat("-", process.stdout.columns - 1) + "\n\n"
+  },
+  list(token) {
+    const ordered = token.ordered;
+    let bulletNumber = token.start || 1;
+    let body = token.items.map((item) =>
+      (ordered ? bulletNumber++ + ". " : "- ") + this.listitem(item).replace(/\n/g, "\n  ")
+    );
+
+    return "\n" + body.join("\n") + "\n\n"
+  },
+
+  listitem(item) {
+    return (item.task ? terminalColors.yellow(item.checked ? "[x] " : "[ ] ") : '') +
+      this.parser.parse(item.tokens, !!item.loose);
+  },
+  blockquote({ tokens }) {
+    const rendered = this.parser.parse(tokens);
+    return terminalColors.blue("| " + rendered.trim().replace(/\n/g, "\n| ")) + "\n\n"
+  },
+  link({ href, text, ...rest }) {
+    const title = text != href ? text : '';
+    return terminalColors.bold(title ? `${title} (${href})` : href);
+  },
+  image({ href, text, ...rest }) {
+    const title = text != href ? text : '';
+    return terminalColors.bold(title ? `${title} (🌅 ${href})` : "🌅 " + href);
+  },
+
+  // TODO - convert this from HTML back into terminal-friendly layout
+  table(token) {
+    let header = '';
+
+    // header
+    let cell = '';
+    for (let j = 0; j < token.header.length; j++) {
+      cell += this.tablecell(token.header[j]);
+    }
+    header += this.tablerow({ text: cell });
+
+    let body = '';
+    for (let j = 0; j < token.rows.length; j++) {
+      const row = token.rows[j];
+
+      cell = '';
+      for (let k = 0; k < row.length; k++) {
+        cell += this.tablecell(row[k]);
+      }
+
+      body += this.tablerow({ text: cell });
+    }
+    if (body) body = `<tbody>${body}</tbody>`;
+
+    return '<table>\n'
+      + '<thead>\n'
+      + header
+      + '</thead>\n'
+      + body
+      + '</table>\n';
+  },
+
+  tablerow({ text }) {
+    return `<tr>\n${text}</tr>\n`;
+  },
+
+  tablecell(token) {
+    const content = this.parser.parseInline(token.tokens);
+    const type = token.header ? 'th' : 'td';
+    const tag = token.align
+      ? `<${type} align="${token.align}">`
+      : `<${type}>`;
+    return tag + content + `</${type}>\n`;
+  }
+};
+marked.use({ renderer });
+
+const colorizeMarkdown = (markdown) =>
+  decodeHTML(marked.parse(markdown).replace(/\s*\n\s*\n(\s*\n)+/g, '\n\n'));
+
+const { spawn } = require('child_process');
+const process = require('process');
+const fs = require('fs');
+const { OpenAI } = require('openai');
+
+const { OPENAI_MODEL = "gpt-4o-mini-2024-07-18", OPENAI_API_KEY = '' } = process.env
+
+// Ensure the OpenAI API key is set
+if (!OPENAI_API_KEY) {
+  console.error('Please set the OPENAI_API_KEY environment variable.');
+  process.exit(1);
+}
+
+// Initialize OpenAI API
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Parse command-line arguments
+const args = process.argv.slice(2);
+
+let context = '';
+let commandArgs = [];
+let i = 0;
+
+while (i < args.length) {
+  if (args[i] === '--context') {
+    i++;
+    if (i < args.length) {
+      context = args[i];
+      i++;
+    } else {
+      console.error('Error: Missing argument for --context');
+      process.exit(1);
+    }
+  } else if (args[i] === '--context-file') {
+    i++;
+    if (i < args.length) {
+      try {
+        context = fs.readFileSync(args[i], 'utf-8');
+      } catch (err) {
+        console.error(`Error reading context file: ${err.message} `);
+        process.exit(1);
+      }
+      i++;
+    } else {
+      console.error('Error: Missing argument for --context-file');
+      process.exit(1);
+    }
+  } else if (args[i] === '--') {
+    commandArgs = args.slice(i + 1);
+    break;
+  } else {
+    i++;
+  }
+}
+
+if (commandArgs.length === 0) {
+  console.error('Please provide a command to run after "--"');
+  process.exit(1);
+}
+
+const command = commandArgs[0];
+const commandOptions = commandArgs.slice(1);
+
+let output = '';
+
+// Spawn the child process
+const child = spawn(command, commandOptions, {
+  env: {
+    ...process.env,
+    // Attempt to force color output
+    FORCE_COLOR: 'true',
+  },
+  stdio: 'pipe',
+});
+
+// Function to write data to stdout and capture output
+const handleData = (stream) => (data) => {
+  process.stdout.write(data);
+  output += data.toString();
+};
+
+child.stdout.on('data', handleData(child.stdout));
+child.stderr.on('data', handleData(child.stderr));
+
+child.on('close', (code) => {
+  (async () => {
+    let prompt = `
+# Role
+You are a coding assistant.Analyze the following output from running a command.
+
+REQUIREMENTS:
+- Be VERY succinct. Your output should be much smaller than the input.
+- If there were errors (not just warnings), then:
+  - only focus on the errors
+  - Further, only focus in the first or most important error.
+  - Only note the other errors briefly.
+  - If there is a stack trace, guess the most helpful line and include the file:row:column reference.
+  - deprecation warnings are NOT errors.
+  - If there were errors, end your message with a short, creative, and encouraging quote about perseverance. The quote should focus on resilience and overcoming adversity. Vary the structure—sometimes using humor, wisdom, metaphors or quote from a motivational poster. The whackier and funnier, the better. If possible, connect it to the nature of the error. Don't always start with "remember". Avoid suggesting snacks or treats to feel better, it's not a healthy habit. Examples:
+    - “If life throws you a curveball, duck… or swing like you’re hitting a piñata!”
+    - “If you trip, turn it into a forward roll—instant acrobat!”
+    - “Remember, even Google Maps gets lost sometimes!”
+    - “Life isn’t a race, it’s more like a weird obstacle course… but you’re learning some epic tricks along the way!”
+    - “Confucius say, ‘The road less traveled is less traveled for a reason because only the bold find the hidden treasures!”
+    - “Why run when you can cartwheel your way through problems?”
+    - “If things aren’t going right, turn left… or just dance in circles for a bit!”
+    - “Remember: You’re not stuck, you’re just making moves that nobody can see—yet!”
+    - “Confucius say, ‘Patience is a virtue, but a hilarious cat video work too!’”
+    - “Inner peace is like Wi-Fi—sometimes it’s spotty, but the connection is always there.”
+    - “Inner strength is like tea—steeped in patience, flavored by experience.”
+    - “The path to enlightenment begins with a single step… preferably in comfortable shoes.”
+    - “Time is relative, but 30 seconds waiting for tests is an eternity.”
+    - “Imagination is more important than knowledge… unless you’re assembling IKEA furniture.”
+    - “Dude, life’s like, totally a rollercoaster… so, you know, hang on and enjoy the ride!”
+    - “No matter how gnarly things get, just remember—there’s always a totally rad solution on the horizon!”
+    - “No matter how tough life gets, just remember—there’s always another box of chocolates to open.”
+    - “Do not judge yourself by your failures, judge yourself by how many times you fell down and got back up again.”
+    - “Success is not final, failure is not fatal: it is the courage to continue that allows us to soldier on.”
+    - “If you’re going through hell, keep going.”
+    - “The time is always right to do what is right.”
+    - “No one can make you feel inferior without your consent.”
+    - “The people who are crazy enough to think they can change the world are the ones who do.”
+    - “Do not go where the path may lead, go instead where there is no path and leave a trail.”
+    - “Life is either a daring adventure or nothing at all.”
+    - "Remember, every failure is just an invitation to try a little dance with creativity!"
+    - "When life hands you a 404, just remember: even GPS gets lost sometimes."
+
+- If there were no errors (only warnings of all good news), then:
+  - skip the quote
+  - state that everything looked good
+  - provide a VERY brief summary of the success (e.g. how many tests passed, how many files compiled, etc.)
+  - and congratulate the user! Vary what you say to keep it fresh!
+
+- Provide all files with their file path relative to the currentDirectory
+
+## Examples
+
+### Good output example 1
+
+- The test suite failed because **source/tests/Server/LegacyApi/KaiHandlers.test.ts** has no tests.
+- Note: There were multiple deprecation warnings related to the punycode module.
+
+> Even the darkest clouds must part to let the sun shine through.
+
+### Good output example 2
+
+- All **79 tests** from all **7 files** passed!
+
+Nice!
+
+# Command
+
+Below is the command executed and its options:
+
+\`\`\`
+${JSON.stringify({ command, commandOptions, currentDirectory: process.cwd() }, null, 2)}
+\`\`\`
+
+`
+
+    if (context) {
+      prompt += `\n\n# Context\n${context}\n`;
+    }
+
+    prompt += `\n\n# Output\n\`\`\`\n${output}\n\`\`\`\n`;
+    let response = '';
+
+    try {
+      const rawResponse = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      response = rawResponse.choices[0].message.content.trim()
+      // response = prompt
+
+    } catch (error) {
+      console.error('Error communicating with OpenAI API:', error);
+    }
+    console.log(colorizeMarkdown(`
+# ChatGPT Suggestions _(${OPENAI_MODEL})_
+${response}`));
+
+  })();
+});

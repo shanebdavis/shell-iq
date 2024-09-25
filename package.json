@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "art-standard-lib": "^1.73.3",
+    "marked": "^14.1.2",
+    "openai": "^4.63.0"
+  },
+  "devDependencies": {
+    "caffeine-script": "^0.75.1"
+  }
+}
