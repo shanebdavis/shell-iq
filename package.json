@@ -4,7 +4,7 @@
   "description": "AI-powered shell process summarizer that watches stdio and stderr, providing concise reports on errors and successes.",
   "main": "shell-iq.js",
   "bin": {
-    "shell-iq": "./shell-iq.js"
+    "shell-iq": "shell-iq"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -32,15 +32,6 @@
   ],
   "author": "Shane Brinkman-Davis",
   "license": "MIT",
-  "dependencies": {
-    "art-standard-lib": "^1.73.3",
-    "marked": "^14.1.2",
-    "openai": "^4.63.0"
-  },
-  "devDependencies": {
-    "caffeine-script": "^0.75.1"
-  }
-}{
   "dependencies": {
     "art-standard-lib": "^1.73.3",
     "marked": "^14.1.2",
