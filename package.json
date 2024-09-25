@@ -1,6 +1,6 @@
 {
   "name": "shell-iq",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "AI-powered shell process summarizer that watches stdio and stderr, providing concise reports on errors and successes.",
   "main": "shell-iq.js",
   "bin": {
