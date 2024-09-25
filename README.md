@@ -7,11 +7,11 @@
 - Monitors `stdout` and `stderr` from your shell processes
 - Provides clear, succinct reports of errors and successes and provides suggestions for fixing them
 - Combine it with a "watcher" that re-runs the command when it detects changes and get updated ai-generated summaries every time
-- Works with any shell command (not limited to JAvaScript)
+- Works with any shell command (not limited to JavaScript)
 
 ## Example
 
-![image](./example.png)
+![image](https://github.com/shanebdavis/shell-iq/raw/main/example.png)
 
 ## Installation
 
