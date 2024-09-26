@@ -2,6 +2,8 @@
 
 **shell-iq** is an AI-powered tool that watches the `stdio` and `stderr` from a shell process and provides concise summaries of errors and successes. It’s particularly useful for accelerating development by analyzing dev-server or test outputs, allowing you to quickly identify and understand failures without manually digging through long logs.
 
+**shell-iq** uses your OpenAI API key to generate summaries.
+
 ## Features
 
 - Monitors `stdout` and `stderr` from your shell processes

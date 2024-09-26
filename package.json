@@ -28,7 +28,9 @@
     "debugging",
     "failure-insights",
     "process-automation",
-    "stdout-analysis"
+    "stdout-analysis",
+    "chat-gpt",
+    "openai"
   ],
   "author": "Shane Brinkman-Davis",
   "license": "MIT",
