@@ -2,14 +2,14 @@
 /*
 # Setup
 
-```sh
+\``sh
 npm install marked openai --save-dev
-```
+\``
 
 # Usage
-```sh
+\``sh
 ./chatgpt-dev-helper.js -- npm test
-```
+\``
 */
 
 const marked = require('marked');
@@ -250,7 +250,7 @@ if (commandArgs.length === 0) {
 
 usage: \`npx shell-iq [--context <context>] [--context-file <context-file>] [--] <command> [-- <command-options>]\`
 
-example: \`npx shell-iq -- npm test\``));
+example: \`npx shell-iq -- npm test\\`));
   process.exit(1);
 }
 
@@ -284,19 +284,23 @@ child.on('close', (code) => {
 # Role
 You are a coding assistant.Analyze the following output from running a command.
 
-    REQUIREMENTS:
-    - Be VERY succinct.Your output should be much smaller than the input.
-- If there were errors(not just warnings), then:
-    - only focus on the errors
-  - Further, only focus in the first or most important error.
-  - Only note the other errors briefly.
-  - If there is a stack trace, guess the most helpful line and include the file: row: column reference.
-  - deprecation warnings are NOT errors.
-  - effectively help with the error
+## REQUIREMENTS
+- Be VERY succinct. Your output should be much smaller than the input.
+- Any files you include in the output:
+  1. make the path relative to the provided currentDirectory
+  2. if row or row+column is know for the file, use the path/file.ext:row:column format
+
+### When there are BREAKING ERRORS
+If there were BREAKING errors (not just warnings or deprecation warnings), then:
+
+- ONLY focus on the first or most important breaking errors
+- ONLY note the other errors briefly
+- Effectively help with the error
   1. clearly state the error very shortly
   2. clearly identify where it is in the source code, if possible, and provide a link to the relative to the current directory.Use the file: row:column format if row and column are available.
-    3. succinctly suggest the most likely solution
-    - If there were errors, end your message with a short, creative, and encouraging quote about perseverance.The quote should focus on resilience and overcoming adversity.Vary the structure—sometimes using humor, wisdom, metaphors or quote from a motivational poster.The whackier and funnier, the better.If possible, connect it to the nature of the error.Don't always start with "remember". Avoid suggesting snacks or treats to feel better, it's not a healthy habit.Examples:
+  3. succinctly suggest the most likely solution
+
+- If there were breaking errors, end your message with a short, creative, and encouraging quote about perseverance. The quote should focus on resilience and overcoming adversity. Vary the structure—sometimes using humor, wisdom, metaphors or quote from a motivational poster. The whackier and funnier, the better. If there is an error, try to make sure the quote makes sense with the nature of the error. Don't always start with "remember". Avoid suggesting snacks or treats to feel better, it's not a healthy habit. Examples:
   - “If life throws you a curveball, duck… or swing like you’re hitting a piñata!”
   - “If you trip, turn it into a forward roll—instant acrobat!”
   - “Remember, even Google Maps gets lost sometimes!”
@@ -323,30 +327,46 @@ You are a coding assistant.Analyze the following output from running a command.
   - “Do not go where the path may lead, go instead where there is no path and leave a trail.”
   - “Life is either a daring adventure or nothing at all.”
   - "Remember, every failure is just an invitation to try a little dance with creativity!"
-    - "When life hands you a 404, just remember: even GPS gets lost sometimes."
+  - "When life hands you a 404, just remember: even GPS gets lost sometimes."
+  - "The compiler’s caught you with a parse error? Time to show it some well punctuated wisdom!"
+  - "Remember, even a missing comma can turn a dinner into a murder mystery: 'Let’s eat Grandma!'" # << example to use with parsing errors
+  - "Lost in translation, huh? The good news: every parse error is just a puzzle waiting for your brilliance to solve."
+  - "A little syntax stumble? No big deal. Just a reminder that compilers need everything spelled out for them."
+  - "Caught in a parse error? It’s just your code asking for a tighter script—give it that plot twist it deserves!"
 
-    - If there were no errors(only warnings of all good news), then:
-  - skip the quote
-    - state that everything looked good
-      - provide a VERY brief summary of the success(e.g.how many tests passed, how many files compiled, etc.)
-        - and congratulate the user! Vary what you say to keep it fresh!
+### No Breaking Errors - Good news!
 
-          - Provide all files with their file path relative to the currentDirectory
+If there were no errors(only warnings of all good news), then:
+
+- report the Success
+- provide a VERY brief summary of the success (e.g. how many tests passed, how many files compiled, etc.)
+- and congratulate the user! Vary what you say to keep it fresh!
 
 ## Examples
 
 ### Good output example 1
 
-    - The test suite failed because ** source / tests / Server / LegacyApi / KaiHandlers.test.ts ** has no tests.
-- Note: There were multiple deprecation warnings related to the punycode module.
+- **Error**: The test suite failed because \`KaiHandlers.test.ts\` has no tests.
+- **Location**: \`source/tests/Server/LegacyApi/KaiHandlers.test.ts\`
+- **Deprecation Note**: There were multiple deprecation warnings related to the punycode module.
 
 > Even the darkest clouds must part to let the sun shine through.
 
 ### Good output example 2
 
-    - All ** 79 tests ** from all ** 7 files ** passed!
+- **Success**: All **79 tests** from all **7 files** passed!
 
-  Nice!
+_You are AWESOME!!! All tests are passing!_
+
+Nice!
+
+### Good output example 3
+
+- **Error**: Parsing error in \`source/SocialDirector/TestHarness.caf\` due to unexpected condition at line 159.
+- **Location**: \`source/SocialDirector/TestHarness.caf:159:5\`
+- **Suggestion**: Review the condition in line 159 and ensure it meets the expected syntax for your parser.
+
+> "Parse error? Think of it as your code's way of saying, 'I need clarity!' Time to drop some punctuation wisdom."
 
 # Command
 
@@ -378,7 +398,7 @@ ${JSON.stringify({ command: `${command} ${commandOptions}`, currentDirectory: pr
     }
     console.log(colorizeMarkdown(`
 
-# shell-iq suggestions _(${OPENAI_MODEL})_
+# shell-iq _(${OPENAI_MODEL})_
 
 ${response}`));
 
