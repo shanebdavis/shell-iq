@@ -12,6 +12,7 @@ npm install marked openai --save-dev
 \``
 */
 
+const { version } = require('./package.json');
 const marked = require('marked');
 const { terminalColors, repeat, log } = require('art-standard-lib')
 const decodeHTML = (str) => str.replace(/&#(\d+);/g, (_, num) => String.fromCharCode(num)).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
@@ -338,13 +339,30 @@ If there were BREAKING errors (not just warnings or deprecation warnings), then:
 
 If there were no errors(only warnings of all good news), then:
 
-- report the Success
-- provide a VERY brief summary of the success (e.g. how many tests passed, how many files compiled, etc.)
+- report the Success (e.g. how many tests passed, how many files compiled, etc.)
+- provide a VERY brief summary of the output:
+  - for tests, report what was tested
+  - if the output was a list of files, what files were listed? what information was listed about the files? Focus on the outliers. If sizes were provided, what were the biggest? What types of files were listed (group and count by extension)
+  - for git logs, who were the top committers? what timespan was covered? how many commits were made?
+  - for other output, summarize the most important information
+  - if a file was "cat"ed, summarize the contents of the file
+    - README and doc - what is the project title? what is project's description?
+    - package.json and other project files - what is the name, what is the version, what is the description, what is the license, what is the author
+    - source-code files - what is the purpose of the file, what are its exports, what are its dependencies
+    - configuration files - what is being configured? what are the most important configurations settings?
 - and congratulate the user! Vary what you say to keep it fresh!
+
+### No output (i.e. the Output section below had 0 bytes)
+
+If there was no output, then:
+
+- report that there was no output
+- echo back the command that was use
+- suggest why there was no output
 
 ## Examples
 
-### Good output example 1
+### Example 1: (an example with breaking errors)
 
 - **Error**: The test suite failed because \`KaiHandlers.test.ts\` has no tests.
 - **Location**: \`source/tests/Server/LegacyApi/KaiHandlers.test.ts\`
@@ -352,15 +370,16 @@ If there were no errors(only warnings of all good news), then:
 
 > Even the darkest clouds must part to let the sun shine through.
 
-### Good output example 2
+### Example 2: (an example with no breaking errors)
 
-- **Success**: All **79 tests** from all **7 files** passed!
+- **Success**: All **79 tests** from all **7 files** passed
+- **Summary**: The tests evaluated various aspects of Pipeline functionalities, including AuthKey, CalendarEvent, User workflows, and CustomFieldTypes.
 
 _You are AWESOME!!! All tests are passing!_
 
 Nice!
 
-### Good output example 3
+### Example 3: (an example with breaking errors)
 
 - **Error**: Parsing error in \`source/SocialDirector/TestHarness.caf\` due to unexpected condition at line 159.
 - **Location**: \`source/SocialDirector/TestHarness.caf:159:5\`
@@ -368,12 +387,25 @@ Nice!
 
 > "Parse error? Think of it as your code's way of saying, 'I need clarity!' Time to drop some punctuation wisdom."
 
+### Example 4: (an example with no breaking errors)
+
+- **Success**: Successfully executed the curl command to fetch HTML content from Google.
+- **Summary**: Data received (approximately 22,289 bytes) without any errors.
+
+Hats off to you! The web waits for no one, but you just took it on in style!
+
+### Example 5: (when Output: 0 bytes)
+
+- **No output**: The command \`git log source/TestHarness.caf\` produced no output (stdout and stderr were empty).
+- **Location**: \`source/TestHarness.caf\`
+- **Suggestion**: This could be due to an absence of git commits in the specified file or directory, or possibly a typo in the command syntax.
+
 # Command
 
 Below is the command executed and its options:
 
   \`\`\`
-${JSON.stringify({ command: `${command} ${commandOptions}`, currentDirectory: process.cwd() }, null, 2)}
+${JSON.stringify({ command: `${command} ${commandOptions.join(' ')}`, currentDirectory: process.cwd() }, null, 2)}
 \`\`\`
 
 `
@@ -382,7 +414,8 @@ ${JSON.stringify({ command: `${command} ${commandOptions}`, currentDirectory: pr
       prompt += `\n\n# Context\n${context}\n`;
     }
 
-    prompt += `\n\n# Output\n\`\`\`\n${output}\n\`\`\`\n`;
+    prompt += output.length ? `\n\n# Output: #{output.length} bytes\n\`\`\`\n${output}\n\`\`\`\n` :
+      `\n\n# Output: 0 bytes\n\nThe command produced no output. stdout and stderr were empty.\n`
     let response = '';
 
     try {
@@ -398,7 +431,7 @@ ${JSON.stringify({ command: `${command} ${commandOptions}`, currentDirectory: pr
     }
     console.log(colorizeMarkdown(`
 
-# shell-iq _(${OPENAI_MODEL})_
+# shell-iq v${version} _(${OPENAI_MODEL})_
 
 ${response}`));
 
